@@ -5,10 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using CsvHelper;
-using System.Net.Http.Headers;
-using aiCorporation.OriginalDoNotChange;
-using System.Net.Sockets;
-using System.Security.Policy;
 
 namespace aiCorporation.NewImproved
 {
