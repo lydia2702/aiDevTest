@@ -197,101 +197,110 @@ namespace aiCorporation.NewImproved
         public SalesAgentList ToSalesAgentList()
         {
             int nCount = 0;
-
-            List<SalesAgent> lsaSaleAgentList = null;
-            List<BankAccountBuilder> lbaBankAccountBuilderList = null;
+            List<SalesAgent> lsaSaleAgentList = new List<SalesAgent>();
+            List<BankAccountBuilder> lbaBankAccountBuilderList = new List<BankAccountBuilder>();
             SalesAgentBuilder saSalesAgentBuilder = null;
             ClientBuilder cClientBuilder = null;
+            BankAccountBuilder baBankAccountBuilder = null;
             string szSalesAgentEmailAddressCompare = null;
             string szClientIdentifierCompare = null;
 
-            lsaSaleAgentList = new List<SalesAgent>();
-            lbaBankAccountBuilderList = new List<BankAccountBuilder>();
-
-            do
+            while (nCount < m_lsafrSalesAgentFileRecordList.Count)
             {
-                // Initial SaleAgent at first record
-                if (nCount == 0)
+                var currentRecord = m_lsafrSalesAgentFileRecordList[nCount];
+
+                // Initial SalesAgent at first record
+                if (nCount == 0 || szSalesAgentEmailAddressCompare != currentRecord.SalesAgentEmailAddress)
                 {
+                    // If not the first record or the SalesAgent has changed, add the previous SalesAgent
+                    if (nCount > 0)
+                    {
+                        // Add the previous SalesAgent and add previous Client if SalesAgentEmailAddress has changed
+                        if (saSalesAgentBuilder != null)
+                        {
+                            if (cClientBuilder != null)
+                            {
+                                for (int baCount = 0; baCount < lbaBankAccountBuilderList.Count; baCount++)
+                                {
+                                    cClientBuilder.BankAccountList.Add(lbaBankAccountBuilderList[baCount]);
+                                }
+                                saSalesAgentBuilder.ClientList.Add(cClientBuilder);
+
+                                // Clear Client after assigned to SaleAgent
+                                cClientBuilder = null;
+                            }
+
+                            lsaSaleAgentList.Add(saSalesAgentBuilder.ToSalesAgent());
+                        }
+                    }
+
+                    // Recreate new current SalesAgent
                     saSalesAgentBuilder = new SalesAgentBuilder
                     {
-                        SalesAgentName = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentName,
-                        SalesAgentEmailAddress = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress
+                        SalesAgentName = currentRecord.SalesAgentName,
+                        SalesAgentEmailAddress = currentRecord.SalesAgentEmailAddress
                     };
+
+                    // Clear previous BankAccount lists
+                    lbaBankAccountBuilderList.Clear();
                 }
-                else if (szClientIdentifierCompare != m_lsafrSalesAgentFileRecordList[nCount].ClientIdentifier)
+
+                // Compare with the previous Client 
+                if (szClientIdentifierCompare != currentRecord.ClientIdentifier)
                 {
-                    cClientBuilder = new ClientBuilder
+                    // If the Client has changed, add the previous Client and Bank Accounts to the current SalesAgent
+                    if (cClientBuilder != null)
                     {
-                        ClientName = m_lsafrSalesAgentFileRecordList[nCount - 1].ClientName,
-                        ClientIdentifier = m_lsafrSalesAgentFileRecordList[nCount - 1].ClientIdentifier
-                    };
-
-                    lbaBankAccountBuilderList.ForEach(s => cClientBuilder.BankAccountList.Add(s));
-
-                    saSalesAgentBuilder.ClientList.Add(cClientBuilder);
-
-                    if (szSalesAgentEmailAddressCompare != m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress)
-                    {
-                        lsaSaleAgentList.Add(saSalesAgentBuilder.ToSalesAgent());
-                        saSalesAgentBuilder = new SalesAgentBuilder
+                        for (int baCount = 0; baCount < lbaBankAccountBuilderList.Count; baCount++)
                         {
-                            SalesAgentName = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentName,
-                            SalesAgentEmailAddress = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress
-                        };
+                            cClientBuilder.BankAccountList.Add(lbaBankAccountBuilderList[baCount]);
+                        }
+
+                        saSalesAgentBuilder.ClientList.Add(cClientBuilder);
                     }
 
-                    lbaBankAccountBuilderList = new List<BankAccountBuilder>();
-                }
-
-                if (nCount == m_lsafrSalesAgentFileRecordList.Count - 1)
-                {
-                    if (szSalesAgentEmailAddressCompare != m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress)
-                    {
-                        saSalesAgentBuilder = new SalesAgentBuilder
-                        {
-                            SalesAgentName = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentName,
-                            SalesAgentEmailAddress = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress
-                        };
-                    }
-
+                    // Create a new Client
                     cClientBuilder = new ClientBuilder
                     {
-                        ClientName = m_lsafrSalesAgentFileRecordList[nCount].ClientName,
-                        ClientIdentifier = m_lsafrSalesAgentFileRecordList[nCount].ClientIdentifier
+                        ClientName = currentRecord.ClientName,
+                        ClientIdentifier = currentRecord.ClientIdentifier
                     };
-                    saSalesAgentBuilder.ClientList.Add(cClientBuilder);
 
-                    lbaBankAccountBuilderList.Add(new BankAccountBuilder
-                    {
-                        BankName = m_lsafrSalesAgentFileRecordList[nCount].BankName,
-                        AccountNumber = m_lsafrSalesAgentFileRecordList[nCount].AccountNumber,
-                        SortCode = m_lsafrSalesAgentFileRecordList[nCount].SortCode,
-                        Currency = m_lsafrSalesAgentFileRecordList[nCount].Currency,
-                    });
-
-                    lbaBankAccountBuilderList.ForEach(s => cClientBuilder.BankAccountList.Add(s));
-
-                    lsaSaleAgentList.Add(saSalesAgentBuilder.ToSalesAgent());
+                    // Clear BankAccount list
+                    lbaBankAccountBuilderList.Clear();
                 }
 
-                BankAccountBuilder baBankAccountBuilder = new BankAccountBuilder
+                // Add the current BankAccount to the list
+                baBankAccountBuilder = new BankAccountBuilder
                 {
-                    BankName = m_lsafrSalesAgentFileRecordList[nCount].BankName,
-                    AccountNumber = m_lsafrSalesAgentFileRecordList[nCount].AccountNumber,
-                    SortCode = m_lsafrSalesAgentFileRecordList[nCount].SortCode,
-                    Currency = m_lsafrSalesAgentFileRecordList[nCount].Currency,
+                    BankName = currentRecord.BankName,
+                    AccountNumber = currentRecord.AccountNumber,
+                    SortCode = currentRecord.SortCode,
+                    Currency = currentRecord.Currency
                 };
 
                 lbaBankAccountBuilderList.Add(baBankAccountBuilder);
 
                 // Update the comparison values for the next record
-                szSalesAgentEmailAddressCompare = m_lsafrSalesAgentFileRecordList[nCount].SalesAgentEmailAddress;
-                szClientIdentifierCompare = m_lsafrSalesAgentFileRecordList[nCount].ClientIdentifier;
+                szSalesAgentEmailAddressCompare = currentRecord.SalesAgentEmailAddress;
+                szClientIdentifierCompare = currentRecord.ClientIdentifier;
 
                 nCount++;
+            }
 
-            } while (nCount < m_lsafrSalesAgentFileRecordList.Count);
+            // Add last SalesAgent and Clients after loop
+            if (saSalesAgentBuilder != null)
+            {
+                if (cClientBuilder != null)
+                {
+                    for (int baCount = 0; baCount < lbaBankAccountBuilderList.Count; baCount++)
+                    {
+                        cClientBuilder.BankAccountList.Add(lbaBankAccountBuilderList[baCount]);
+                    }
+                    saSalesAgentBuilder.ClientList.Add(cClientBuilder);
+                }
+                lsaSaleAgentList.Add(saSalesAgentBuilder.ToSalesAgent());
+            }
 
             return new SalesAgentList(lsaSaleAgentList);
 
